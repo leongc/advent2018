@@ -1039,3 +1039,21 @@ function sum(input) {
 }
 
 console.assert(sum(day01input) === 592);
+
+function findDuplicateSum(input) {
+  var result = 0;
+  var set = new Set();
+  for (var i = 0; i < input.length * 99999; i++) {
+    if (set.has(result)) {
+      return result;
+    }
+    set.add(result);
+    result += input[i % input.length];
+  }
+}
+
+console.assert(findDuplicateSum([+1, -1]) === 0);
+console.assert(findDuplicateSum([+3, +3, +4, -2, -4]) === 10);
+console.assert(findDuplicateSum([-6, +3, +8, +5, -6]) === 5);
+console.assert(findDuplicateSum([+7, +7, -2, -7, -4]) === 14);
+console.log(findDuplicateSum(day01input));
