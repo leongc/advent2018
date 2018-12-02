@@ -335,3 +335,49 @@ function checksum(strings) {
 
 console.assert(checksum(testInput) === 12);
 console.log(checksum(input));
+
+/*
+--- Part Two ---
+Confident that your list of box IDs is complete, you're ready to find the boxes full of prototype fabric.
+
+The boxes will have IDs which differ by exactly one character at the same position in both strings. For example, given the following box IDs:
+
+abcde
+fghij
+klmno
+pqrst
+fguij
+axcye
+wvxyz
+The IDs abcde and axcye are close, but they differ by two characters (the second and fourth). However, the IDs fghij and fguij differ by exactly one character, the third (h and u). Those must be the correct boxes.
+
+What letters are common between the two correct box IDs? (In the example above, this is found by removing the differing character from either ID, producing fgij.)
+*/
+function chomp(n, s) {
+  return s.substring(0,n) + s.substring(n+1);
+}
+console.assert(chomp(2, "abcde") == "abde");
+
+function findSimilar(inputs) {
+  for (var i = 0; i < inputs[0].length; i++) {
+    var set = new Set();
+    for (var j = 0; j < inputs.length; j++) {
+      var sub = chomp(i, inputs[j]);
+      if (set.has(sub)) {
+        return sub;
+      }
+      set.add(sub);
+    }
+  }
+  return "not found";
+}
+const testInput2 = [
+  "abcde",
+  "fghij",
+  "klmno",
+  "pqrst",
+  "fguij",
+  "axcye",
+  "wvxyz"];
+console.assert(findSimilar(testInput2) == "fgij");
+console.log(findSimilar(input));
