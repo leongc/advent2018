@@ -1341,4 +1341,43 @@ var testInput = [
 "#3 @ 5,5: 2x2"];
 console.assert(countClaims(testInput) == 4);
 console.log(countClaims(input));
-      
+
+/*
+--- Part Two ---
+
+Amidst the chaos, you notice that exactly one claim doesn't overlap by even a single square inch of fabric with any other claim. If you can somehow draw attention to it, maybe the Elves will be able to make Santa's suit after all!
+
+For example, in the claims above, only claim 3 is intact after all claims are made.
+
+What is the ID of the only claim that doesn't overlap?
+*/
+function cleanClaims(claims) {
+  var claimed = new Map();
+  var clean = new Set();
+  function addClaim(s) {
+    var numbers = s.split(/\D+/).slice(1).map(function(x) { return parseInt(x); }); // claim, x, y, w, h
+    var claim = numbers[0];
+    clean.add(claim);
+    var lasty = numbers[2] + numbers[4];
+    for (var y = numbers[2]; y < lasty; y++) { 
+      var lastx = numbers[1] + numbers[3];
+      for (var x = numbers[1]; x < lastx; x++) {
+        var inch = x + "," + y;
+        if (claimed.has(inch)) {
+          clean.delete(claim);
+          clean.delete(claimed.get(inch));
+        } else {
+          claimed.set(inch, claim);
+        }
+      }
+    }
+  }
+  for (var i = 0; i < claims.length; i++) {
+    addClaim(claims[i]);
+  }
+  return clean;
+}
+var testClean = cleanClaims(testInput);
+console.assert(testClean.size == 1, "only expected one clean claim from testInput");
+console.assert(testClean.values().next().value == 3, "testInput clean claim should be 3");
+console.log(cleanClaims(input));
