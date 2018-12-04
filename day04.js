@@ -1265,3 +1265,47 @@ var input = [
 "[1518-08-14 00:02] Guard #1499 begins shift"].sort();
 
 console.log(sleepiestGuardMinute(input));
+
+/*
+--- Part Two ---
+Strategy 2: Of all guards, which guard is most frequently asleep on the same minute?
+
+In the example above, Guard #99 spent minute 45 asleep more than any other guard or minute - three times in total. (In all other cases, any guard spent any minute asleep at most twice.)
+
+What is the ID of the guard you chose multiplied by the minute you chose? (In the above example, the answer would be 99 * 45 = 4455.)
+*/
+function sleepiestGuardMinuteOverall(logs) {
+  var guard;
+  var asleep;
+  var minuteGuardCounts = [];
+  for (var i = 0; i < 60; i++) {
+    minuteGuardCounts[i] = new Map();
+  }
+  var maxCount = 0;
+  var sleepiestGuard;
+  var sleepiestMinute;
+  for (let log of logs) {
+    if (log.endsWith(" begins shift")) {
+      guard = parseInt(log.substring(25).match(/#(\d+) begins shift/)[1]);
+    } else if (log.endsWith(" falls asleep")) {
+      asleep = parseInt(log.substring(15, 17));
+    } else if (log.endsWith(" wakes up")) {
+      var wakesup = parseInt(log.substring(15, 17));
+      for (var minute = asleep; minute < wakesup; minute++) {
+        var count = minuteGuardCounts[minute].has(guard) ? minuteGuardCounts[minute].get(guard) + 1 : 1;
+        minuteGuardCounts[minute].set(guard, count);
+        if (count > maxCount) {
+          maxCount = count;
+          sleepiestGuard = guard;
+          sleepiestMinute = minute;
+        }
+      }
+    } else {
+      console.warn("skipped " + log);
+    }
+  }
+  console.log("sleepiest guard = " + sleepiestGuard + "; sleepiest minute = " + sleepiestMinute);
+  return sleepiestGuard * sleepiestMinute;
+}
+console.assert(sleepiestGuardMinuteOverall(testInput) == "4455", "99 * 45 = 4455");
+console.log(sleepiestGuardMinuteOverall(input));
