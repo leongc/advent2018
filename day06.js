@@ -87,10 +87,10 @@ function makeGrid(minxy, maxxy) {
   return result;
 }
 
-function dump(grid) {
+function dump(grid, delimiter='') {
   var result = "";
   for (var j = 0; j < grid.length; j++) {
-    result += grid[j].join('') + "\n";
+    result += grid[j].join(delimiter) + "\n";
   }
   return result;
 }
@@ -226,3 +226,81 @@ var input = [
 [270, 136],
 ];
 console.log(findMaxFiniteArea(input));
+
+/*
+--- Part Two ---
+On the other hand, if the coordinates are safe, maybe the best you can do is try to find a region near as many coordinates as possible.
+
+For example, suppose you want the sum of the Manhattan distance to all of the coordinates to be less than 32. For each location, add up the distances to all of the given coordinates; if the total of those distances is less than 32, that location is within the desired region. Using the same coordinates as above, the resulting region looks like this:
+
+..........
+.A........
+..........
+...###..C.
+..#D###...
+..###E#...
+.B.###....
+..........
+..........
+........F.
+In particular, consider the highlighted location 4,3 located at the top middle of the region. Its calculation is as follows, where abs() is the absolute value function:
+
+Distance to coordinate A: abs(4-1) + abs(3-1) =  5
+Distance to coordinate B: abs(4-1) + abs(3-6) =  6
+Distance to coordinate C: abs(4-8) + abs(3-3) =  4
+Distance to coordinate D: abs(4-3) + abs(3-4) =  2
+Distance to coordinate E: abs(4-5) + abs(3-5) =  3
+Distance to coordinate F: abs(4-8) + abs(3-9) = 10
+Total distance: 5 + 6 + 4 + 2 + 3 + 10 = 30
+Because the total distance to all coordinates (30) is less than 32, the location is within the region.
+
+This region, which also includes coordinates D and E, has a total size of 16.
+
+Your actual region will need to be much larger than this example, though, instead including all locations with a total distance of less than 10000.
+
+What is the size of the region containing all locations which have a total distance to all given coordinates of less than 10000?
+*/
+function makeZeroGrid(minxy, maxxy) {
+  result = [];
+  for (var y = minxy[1]; y <= maxxy[1]; y++) {
+    var row = [];
+    for (var x = minxy[0]; x <= maxxy[0]; x++) {
+      row.push(0);
+    }
+    result.push(row);
+  }
+  return result;
+}
+
+function sumGridDistance(grid, minxy, originxy) {
+  for (var y = 0; y < grid.length; y++) {
+    for (var x = 0; x < grid[y].length; x++) {
+      grid[y][x] += Math.abs(x + minxy[0] - originxy[0]) + Math.abs(y + minxy[1] - originxy[1]);
+    }
+  }
+}
+
+function countSmallerCells(grid, limit) {
+  var result = 0;
+  for (var y = 0; y < grid.length; y++) {
+    for (var x = 0; x < grid[y].length; x++) {
+      if (grid[y][x] < limit) {
+        result++;
+      }
+    }
+  }
+  return result;
+}
+
+function countClosest(points, limit) {
+  var [minxy, maxxy] = extents(points);
+  var grid = makeZeroGrid(minxy, maxxy);
+  for (let point of points) {
+    sumGridDistance(grid, minxy, point);
+  }
+  return countSmallerCells(grid, limit);
+}
+
+console.assert(countClosest(testInput, 32) == 16);
+
+console.log(countClosest(input, 10000));
