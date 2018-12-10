@@ -105,7 +105,7 @@ function completeStep(step) {
 };
 function processInput(input) {
   reset();
-  result = "";
+  var result = "";
   for (let s of input) {
     let [before, after] = parseInput(s);
     load(before, after);
@@ -223,3 +223,108 @@ var input = [
 "Step O must be finished before step Q can begin.",
 ];
 console.log(processInput(input));
+
+/*
+--- Part Two ---
+As you're about to begin construction, four of the Elves offer to help. "The sun will set soon; it'll go faster if we work together." Now, you need to account for multiple people working on steps simultaneously. If multiple steps are available, workers should still begin them in alphabetical order.
+
+Each step takes 60 seconds plus an amount corresponding to its letter: A=1, B=2, C=3, and so on. So, step A takes 60+1=61 seconds, while step Z takes 60+26=86 seconds. No time is required between steps.
+
+To simplify things for the example, however, suppose you only have help from one Elf (a total of two workers) and that each step takes 60 fewer seconds (so that step A takes 1 second and step Z takes 26 seconds). Then, using the same instructions as above, this is how each second would be spent:
+
+Second   Worker 1   Worker 2   Done
+   0        C          .        
+   1        C          .        
+   2        C          .        
+   3        A          F       C
+   4        B          F       CA
+   5        B          F       CA
+   6        D          F       CAB
+   7        D          F       CAB
+   8        D          F       CAB
+   9        D          .       CABF
+  10        E          .       CABFD
+  11        E          .       CABFD
+  12        E          .       CABFD
+  13        E          .       CABFD
+  14        E          .       CABFD
+  15        .          .       CABFDE
+Each row represents one second of time. The Second column identifies how many seconds have passed as of the beginning of that second. Each worker column shows the step that worker is currently doing (or . if they are idle). The Done column shows completed steps.
+
+Note that the order of the steps has changed; this is because steps now take time to finish and multiple workers can begin multiple steps simultaneously.
+
+In this example, it would take 15 seconds for two workers to complete these steps.
+
+With 5 workers and the 60+ second step durations described above, how long will it take to complete all of the steps?
+
+*/
+
+function completeStepLater(step, dependentSteps) {
+  for (let dependentStep of dependentSteps) {
+    stepDependencies.get(dependentStep).delete(step);
+  }
+};
+var charA = "A".charCodeAt(0);
+var idle = ".";
+function processInputInParallel(input, workers, baseStepDuration=61) {
+  reset();
+  for (let s of input) {
+    let [before, after] = parseInput(s);
+    load(before, after);
+  }
+  var snapshotHeader = "T\t";
+  var workerStates = [];
+  for (let i = 0; i < workers; i++) {
+    workerStates[i] = { timeRemaining: 0, task: idle, dependentSteps: [] };
+    snapshotHeader += i + "\t";
+  }
+  snapshotHeader += "Done";
+  console.log(snapshotHeader);
+  var done = "";
+  var time = -1;
+  function snapshot() {
+    var result = time + "\t";
+    for (let i = 0; i < workers; i++) {
+      result += workerStates[i].task + "\t";
+    }
+    result += done;
+    return result;
+  }
+  var step = nextStep();
+  while (!(step == false && workerStates.every(w => w.timeRemaining == 0))) {
+    for (let w of workerStates) {
+      if (w.timeRemaining > 0) {
+        w.timeRemaining--;
+        if (w.timeRemaining == 0) {
+          completeStepLater(w.task, w.dependentSteps);
+          done += w.task;
+          w.task = idle;
+        }
+      }
+    }
+    step = nextStep();
+    for (let w of workerStates) {
+      if (step != false && w.task == idle) {
+        w.task = step;
+        w.timeRemaining = step.charCodeAt(0) - charA + baseStepDuration;
+        if (dependencySteps.has(step)) {
+          w.dependentSteps = Array.from(dependencySteps.get(step));
+          dependencySteps.delete(step);
+        } else {
+          w.dependentSteps = [];
+        }
+        stepDependencies.delete(step);
+        step = nextStep();
+      }
+    }
+    time++;
+    if (time % 50 == 0) {
+      console.log(snapshot());
+    }
+  }
+  console.log(snapshot());
+  return time;
+}
+
+console.assert(processInputInParallel(testInput, 2, 1) == 15);
+console.log(processInputInParallel(input, 5, 61));
