@@ -68,10 +68,10 @@ function computeGridPower(serialNumber) {
   }
   return grid;
 }
-function computeSquarePower(grid, x, y) {
+function computeSquarePower(grid, x, y, s=3) {
   var result = 0;
-  for (var deltay = 0; deltay < 3; deltay++) {
-    for (var deltax = 0; deltax < 3; deltax++) {
+  for (var deltay = 0; deltay < s; deltay++) {
+    for (var deltax = 0; deltax < s; deltax++) {
       result += grid[y+deltay][x+deltax];
     }
   }
@@ -117,3 +117,39 @@ console.assert(getMaxSquare(computeGridPower(18)).toString() == [33,45].toString
 console.assert(getMaxSquare(computeGridPower(42)).toString() == [21,61].toString());
 
 console.log(getMaxSquare(computeGridPower(input)));
+
+/*
+--- Part Two ---
+You discover a dial on the side of the device; it seems to let you select a square of any size, not just 3x3. Sizes from 1x1 to 300x300 are supported.
+
+Realizing this, you now must find the square of any size with the largest total power. Identify this square by including its size as a third parameter after the top-left coordinate: a 9x9 square with a top-left corner of 3,5 is identified as 3,5,9.
+
+For example:
+
+For grid serial number 18, the largest total square (with a total power of 113) is 16x16 and has a top-left corner of 90,269, so its identifier is 90,269,16.
+For grid serial number 42, the largest total square (with a total power of 119) is 12x12 and has a top-left corner of 232,251, so its identifier is 232,251,12.
+What is the X,Y,size identifier of the square with the largest total power?
+*/
+function getMaxAnySquare(grid) {
+  var maxx, maxy, maxs, mins = 1, maxPower = -Infinity;
+  for (var s = grid.length; s-->mins; ) {
+    for (var y = 1; y <= grid.length - s; y++) {
+      for (var x = 1; x <= grid[y].length - s; x++) {
+        var power = computeSquarePower(grid, x, y, s);
+        if (power > maxPower) {
+          maxx = x;
+          maxy = y;
+          maxs = s;
+          mins = Math.ceil(Math.sqrt(power/4));
+          maxPower = power;
+          console.log([x,y,s,mins,power]);
+        }
+      }
+    }
+  }
+  return [maxx, maxy, maxs];
+}
+console.assert(getMaxAnySquare([[],[0,-3,4,2,2,2],[0,-4,4,3,3,4],[0,-5,3,3,4,-4],[0,4,3,3,4,-3],[0,3,3,3,-5,-1]]).toString() == [2,1,4].toString());
+console.assert(getMaxAnySquare(computeGridPower(18)).toString() == [90,269,16].toString());
+console.assert(getMaxAnySquare(computeGridPower(42)).toString() == [232,251,12].toString());
+console.log(getMaxAnySquare(computeGridPower(input)));
