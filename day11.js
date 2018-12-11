@@ -132,7 +132,7 @@ What is the X,Y,size identifier of the square with the largest total power?
 */
 function getMaxAnySquare(grid) {
   var maxx, maxy, maxs, mins = 1, maxPower = -Infinity;
-  for (var s = grid.length; s-->mins; ) {
+  for (var s = Math.min(20, grid.length); s-->mins; ) {
     for (var y = 1; y <= grid.length - s; y++) {
       for (var x = 1; x <= grid[y].length - s; x++) {
         var power = computeSquarePower(grid, x, y, s);
@@ -140,7 +140,9 @@ function getMaxAnySquare(grid) {
           maxx = x;
           maxy = y;
           maxs = s;
-          mins = Math.ceil(Math.sqrt(power/4));
+          if (power > 0) {
+            mins = Math.ceil(Math.sqrt(power/4));
+          }
           maxPower = power;
           console.log([x,y,s,mins,power]);
         }
@@ -149,7 +151,12 @@ function getMaxAnySquare(grid) {
   }
   return [maxx, maxy, maxs];
 }
-console.assert(getMaxAnySquare([[],[0,-3,4,2,2,2],[0,-4,4,3,3,4],[0,-5,3,3,4,-4],[0,4,3,3,4,-3],[0,3,3,3,-5,-1]]).toString() == [2,1,4].toString());
+console.assert(getMaxAnySquare([[],
+  [0,-3, 4, 2, 2, 2],
+  [0,-4, 4, 3, 3, 4],
+  [0,-5, 3, 3, 4,-4],
+  [0, 4, 3, 3, 4,-3],
+  [0, 3, 3, 3,-5,-1]]).toString() == [2,1,4].toString());
 console.assert(getMaxAnySquare(computeGridPower(18)).toString() == [90,269,16].toString());
 console.assert(getMaxAnySquare(computeGridPower(42)).toString() == [232,251,12].toString());
 console.log(getMaxAnySquare(computeGridPower(input)));
