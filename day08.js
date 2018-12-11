@@ -39,23 +39,17 @@ function sumNode(numbers) {
   if (childCount == 0) {
     return sumMetadataShift(numbers, metadataCount);
   }
-  var sum = sumMetadataPop(numbers, metadataCount);
+  var sum = 0
   for (let i = childCount; i-->0; ) {
     sum += sumNode(numbers);
   }
+  sum += sumMetadataShift(numbers, metadataCount);
   return sum;
 }
 function sumMetadataShift(numbers, metadataCount) {
   var sum = 0;
   for (let i = metadataCount; i-->0; ) {
     sum += numbers.shift();
-  }
-  return sum;
-}
-function sumMetadataPop(numbers, metadataCount) {
-  var sum = 0;
-  for (let i = metadataCount; i-->0; ) {
-    sum += numbers.pop();
   }
   return sum;
 }
