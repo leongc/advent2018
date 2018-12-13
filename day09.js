@@ -53,21 +53,45 @@ What is the winning Elf's score?
 */
 
 function marbleScore(playerCount, lastMarble) {
-  var marbles = [0];
+  var head = { v: 0 };
+  head.prev = head;
+  head.next = head;
+  var marbles = {
+    ccw: function() { head = head.prev; },
+    cw: function() { head = head.next; },
+    push: function(m) {
+      var before = head;
+      var after = head.next;
+      var node = { v: m, prev: before, next: after };
+      before.next = node;
+      after.prev = node;
+      head = node;
+    },
+    pop: function() {
+      var before = head.prev;
+      var after = head.next;
+      before.next = after;
+      after.prev = before;
+      var result = head.v;
+      head.prev = null;
+      head.next = null;
+      head = after;
+      return result;
+    }
+  };
   function addMarble(n) {
     if (n % 23 == 0) {
-      // rotate 6 ccw
-      for (let i = 0; i < 6; i++) {
-        marbles.unshift(marbles.pop());
+      // rotate 7 ccw
+      for (let i = 0; i < 7; i++) {
+        marbles.ccw();
       }
-      // remove the 7th ccw and score both
+      // remove the 7th marble and score both
       return n + marbles.pop();
     } else {
-      // rotate 2 clockwise
-      marbles.push(marbles.shift());
-      marbles.push(marbles.shift());
+      // rotate clockwise
+      marbles.cw();
       // insert new marble as current
-      marbles.unshift(n);
+      marbles.push(n);
       // no points
       return 0;
     }
@@ -96,3 +120,11 @@ console.assert(marbleScore(21, 6111) == 54718);
 console.assert(marbleScore(30, 5807) == 37305);
 // 455 players; last marble is worth 71223 points
 console.log(marbleScore(455, 71223));
+
+/*
+--- Part Two ---
+Amused by the speed of your answer, the Elves are curious:
+
+What would the new winning Elf's score be if the number of the last marble were 100 times larger?
+*/
+console.log(marbleScore(455, 7122300);
