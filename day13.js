@@ -40,80 +40,62 @@ v  |  |  |  |
 First, the top cart moves. It is facing down (v), so it moves down one square. Second, the bottom cart moves. It is facing up (^), so it moves up one square. Because all carts have moved, the first tick ends. Then, the process repeats, starting with the first cart. The first cart moves down, then the second cart moves up - right into the first cart, colliding with it! (The location of the crash is marked with an X.) This ends the second and last tick.
 */
 
+var charA = "A".charCodeAt(0);
+var facingIntersection = new Map();
+facingIntersection.set("^", "<^>");
+facingIntersection.set("<", "v<^");
+facingIntersection.set("v", ">v<");
+facingIntersection.set(">", "^>v");
+var facingNextover = new Map();
+facingNextover.set("^\\", "<");
+facingNextover.set("^|", "^");
+facingNextover.set("^/", ">");
+facingNextover.set(">/", "^");
+facingNextover.set(">-", ">");
+facingNextover.set(">\\", "v");
+facingNextover.set("v\\", ">");
+facingNextover.set("v|", "v");
+facingNextover.set("v/", "<");
+facingNextover.set("</", "v");
+facingNextover.set("<-", "<");
+facingNextover.set("<\\", "^");
 function buildMine(lines) {
   var track = [];
-  var carts = [];
+  var carts = new Map();
   var nextCart = 0;
-  var charA = "A".charCodeAt(0);
   var ticks = 0;
   function createCart(match) {
     var cartChar = String.fromCharCode(charA + nextCart);
-    carts[nextCart] = {
+    carts.set(cartChar, {
+      x: undefined,
+      y: undefined,
       facing: match,
       over: (match == "^" || match == "v") ? "|" : "-",
       intersections: 0,
       ticks: 0,
       cartChar: cartChar,
-    }
+    });
     nextCart++;
     return cartChar;
   }
   for (let line of lines) {
     track.push( line.replace(/[<>^v]/g, createCart).split('') );
   }
-  function getCartIndex(cartChar) {
-    return cartChar.charCodeAt(0) - charA;
-  }
   function drawCart(cartChar) {
-    return carts[getCartIndex(cartChar)].facing;
+    return carts.get(cartChar).facing;
   }
   function dumpTrack() {
     return track.map(line=>line.join('').replace(/[A-Z]/g, drawCart))
                 .join('\n');
   }
-  function getCart(c) {
-    switch(c) {
-      case " ":
-      case "-":
-      case "|":
-      case "/":
-      case "\\":
-      case "+":
-        return null;
-      default:
-        var cartIndex = getCartIndex(c);
-        if (0 <= cartIndex && cartIndex < carts.length) {
-          return carts[cartIndex];
-        }
-    }
-    return null;
-  }
-  var facingIntersection = new Map();
-  facingIntersection.set("^", "<^>");
-  facingIntersection.set("<", "v<^");
-  facingIntersection.set("v", ">v<");
-  facingIntersection.set(">", "^>v");
   function enterIntersection(cart) {
     return facingIntersection.get(cart.facing)[cart.intersections++%3];
   }
-  var facingNextover = new Map();
-  facingNextover.set("^\\", "<");
-  facingNextover.set("^|", "^");
-  facingNextover.set("^/", ">");
-  facingNextover.set(">/", "^");
-  facingNextover.set(">-", ">");
-  facingNextover.set(">\\", "v");
-  facingNextover.set("v\\", ">");
-  facingNextover.set("v|", "v");
-  facingNextover.set("v/", "<");
-  facingNextover.set("</", "v");
-  facingNextover.set("<-", "<");
-  facingNextover.set("<\\", "^");
   function nextTick() {
     ticks++;
     for (let y = 0; y < track.length; y++) {
       for (let x = 0; x < track[y].length; x++) {
-        var cart = getCart(track[y][x]);
+        var cart = carts.get(track[y][x]);
         if (cart == null || cart.ticks == ticks) { continue; }
         var nextx, nexty;
         switch (cart.facing) {
@@ -123,11 +105,13 @@ function buildMine(lines) {
           case "v": nextx = x; nexty = y+1; break;
         }
         var nextover = track[nexty][nextx];
-        if (getCart(nextover)) {
+        if (carts.get(nextover)) {
           return [nextx, nexty]; // KABOOM!
         }
         track[y][x] = cart.over;
         track[nexty][nextx] = cart.cartChar;
+        cart.x = nextx;
+        cart.y = nexty;
         cart.over = nextover;
         cart.facing = (nextover == "+") ? enterIntersection(cart) : facingNextover.get(cart.facing + nextover);
         cart.ticks = ticks;
@@ -429,3 +413,134 @@ var input =  [
 ];
 
 console.log(buildMine(input).toString());
+
+/* 
+--- Part Two ---
+There isn't much you can do to prevent crashes in this ridiculous system. However, by predicting the crashes, the Elves know where to be in advance and instantly remove the two crashing carts the moment any crash occurs.
+
+They can proceed like this for a while, but eventually, they're going to run out of carts. It could be useful to figure out where the last cart that hasn't crashed will end up.
+
+For example:
+
+/>-<\  
+|   |  
+| /<+-\
+| | | v
+\>+</ |
+  |   ^
+  \<->/
+
+/---\  
+|   |  
+| v-+-\
+| | | |
+\-+-/ |
+  |   |
+  ^---^
+
+/---\  
+|   |  
+| /-+-\
+| v | |
+\-+-/ |
+  ^   ^
+  \---/
+
+/---\  
+|   |  
+| /-+-\
+| | | |
+\-+-/ ^
+  |   |
+  \---/
+After four very expensive crashes, a tick ends with only one cart remaining; its final location is 6,4.
+
+What is the location of the last cart at the end of the first tick where it is the only cart left?
+*/
+
+function lastMineStanding(lines) {
+  var track = [];
+  var carts = new Map();
+  var nextCart = 0;
+  var ticks = 0;
+  function createCart(match) {
+    var cartChar = String.fromCharCode(charA + nextCart);
+    carts.set(cartChar, {
+      x: undefined,
+      y: undefined,
+      facing: match,
+      over: (match == "^" || match == "v") ? "|" : "-",
+      intersections: 0,
+      ticks: 0,
+      cartChar: cartChar,
+    });
+    nextCart++;
+    return cartChar;
+  }
+  for (let line of lines) {
+    track.push( line.replace(/[<>^v]/g, createCart).split('') );
+  }
+  function drawCart(cartChar) {
+    return carts.get(cartChar).facing;
+  }
+  function dumpTrack() {
+    return track.map(line=>line.join('').replace(/[A-Z]/g, drawCart))
+                .join('\n');
+  }
+  function enterIntersection(cart) {
+    return facingIntersection.get(cart.facing)[cart.intersections++%3];
+  }
+  function nextTick() {
+    ticks++;
+    for (let y = 0; y < track.length; y++) {
+      for (let x = 0; x < track[y].length; x++) {
+        var cart = carts.get(track[y][x]);
+        if (cart == null || cart.ticks == ticks) { continue; }
+        var nextx, nexty;
+        switch (cart.facing) {
+          case "<": nextx = x-1; nexty = y; break;
+          case ">": nextx = x+1; nexty = y; break;
+          case "^": nextx = x; nexty = y-1; break;
+          case "v": nextx = x; nexty = y+1; break;
+        }
+        var nextover = track[nexty][nextx];
+        var otherCart = carts.get(nextover);
+        track[y][x] = cart.over;
+        if (otherCart != null) {
+          // KABOOM!
+          carts.delete(cart.cartChar);
+          track[nexty][nextx] = otherCart.over;
+          carts.delete(nextover);
+          continue;
+        }
+        track[nexty][nextx] = cart.cartChar;
+        cart.x = nextx;
+        cart.y = nexty;
+        cart.over = nextover;
+        cart.facing = (nextover == "+") ? enterIntersection(cart) : facingNextover.get(cart.facing + nextover);
+        cart.ticks = ticks;
+      }
+    }
+  }
+  do {
+    nextTick();
+    if (ticks % 2000 == 0) {
+      console.log(ticks);
+      console.log(dumpTrack());
+    }
+  } while (carts.size > 1);
+  var lastCart = carts.values().next().value;
+  return [ticks, lastCart.x, lastCart.y];
+};
+var testInput2 = [
+"/>-<\\  ",
+"|   |  ",
+"| /<+-\\",
+"| | | v",
+"\\>+</ |",
+"  |   ^",
+"  \\<->/",
+];
+console.assert(lastMineStanding(testInput2).toString().endsWith([6,4].toString()));
+
+console.log(lastMineStanding(input));
