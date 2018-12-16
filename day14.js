@@ -59,8 +59,8 @@ function getNextRecipes(after, nextCount=10) {
     }
     e1 = (e1 + recipes[e1] + 1) % recipeCount;
     e2 = (e2 + recipes[e2] + 1) % recipeCount;
+    if (recipeCount % 100000 == 0) { console.log(recipeCount); }
   }
-  if (recipeCount % 100000 == 0) { console.log(recipeCount); }
   return recipes.slice(after, after+nextCount).join('');
 }
 console.assert(getNextRecipes(9) == "5158916779");
@@ -68,3 +68,43 @@ console.assert(getNextRecipes(5) == "0124515891");
 console.assert(getNextRecipes(18) == "9251071085");
 console.assert(getNextRecipes(2018) == "5941429882");
 console.log(getNextRecipes(633601));
+
+/*
+--- Part Two ---
+As it turns out, you got the Elves' plan backwards. They actually want to know how many recipes appear on the scoreboard to the left of the first recipes whose scores are the digits from your puzzle input.
+
+51589 first appears after 9 recipes.
+01245 first appears after 5 recipes.
+92510 first appears after 18 recipes.
+59414 first appears after 2018 recipes.
+How many recipes appear on the scoreboard to the left of the score sequence in your puzzle input?
+*/
+function getPreviousRecipes(target) {
+  var targetString = target.join();
+  var recipes = [3, 7];
+  var e1 = 0;
+  var e2 = 1;
+  while (recipes.length < 10000000) {
+    var newRecipes = recipes[e1] + recipes[e2];
+    if (newRecipes < 10) {
+      recipes.push(newRecipes);
+    } else {
+      recipes.push(1);
+      if (recipes.slice(-target.length).join() == targetString) {
+        return recipes.length - target.length;
+      }
+      recipes.push(newRecipes - 10);
+    }
+    if (recipes.slice(-target.length).join() == targetString) {
+      return recipes.length - target.length;
+    }
+    e1 = (e1 + recipes[e1] + 1) % recipes.length;
+    e2 = (e2 + recipes[e2] + 1) % recipes.length;
+    if (recipes.length % 100000 == 0) { console.log(recipes.length); }
+  }
+}
+console.assert(getPreviousRecipes([5,1,5,8,9]) == 9);
+console.assert(getPreviousRecipes([0,1,2,4,5]) == 5);
+console.assert(getPreviousRecipes([9,2,5,1,0]) == 18);
+console.assert(getPreviousRecipes([5,9,4,1,4]) == 2018);
+console.log(getPreviousRecipes(633601));
