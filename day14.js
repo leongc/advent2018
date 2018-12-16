@@ -84,7 +84,7 @@ function getPreviousRecipes(target) {
   var recipes = [3, 7];
   var e1 = 0;
   var e2 = 1;
-  while (recipes.length < 10000000) {
+  while (recipes.length < 50000000) {
     var newRecipes = recipes[e1] + recipes[e2];
     if (newRecipes < 10) {
       recipes.push(newRecipes);
@@ -107,4 +107,4 @@ console.assert(getPreviousRecipes([5,1,5,8,9]) == 9);
 console.assert(getPreviousRecipes([0,1,2,4,5]) == 5);
 console.assert(getPreviousRecipes([9,2,5,1,0]) == 18);
 console.assert(getPreviousRecipes([5,9,4,1,4]) == 2018);
-console.log(getPreviousRecipes(633601));
+console.log(getPreviousRecipes([6,3,3,6,0,1]));
