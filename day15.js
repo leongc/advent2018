@@ -18,18 +18,22 @@ function scanArea(lines) {
     for (let x = 0; x < row.length; x++) {
       if (map[y][x] == "G") {
         var symbol = String.fromCharCode(goblinBaseChar + goblins.size);
-        var newGoblin = { x: x, y: y, hp: 300, attack: 3, symbol: symbol, enemies: elves };
+        var newGoblin = { x: x, y: y, hp: 200, attack: 3, symbol: symbol, enemies: elves };
         goblins.set(symbol, newGoblin);
         map[y][x] = symbol;
       } else if (map[y][x] == "E") {
         var symbol = String.fromCharCode(elfBaseChar + elves.size);
-        var newElf = { x: x, y: y, hp: 300, attack: 3, symbol: symbol, enemies: goblins };
+        var newElf = { x: x, y: y, hp: 200, attack: 3, symbol: symbol, enemies: goblins };
         elves.set(symbol, newElf);
         map[y][x] = symbol;
       }
     }
   }
   return [map, goblins, elves];
+}
+
+function dump(map) {
+  console.log(map.map(x=>x.join('')).join('\n'));
 }
 
 function hpSum(team) {
@@ -134,11 +138,8 @@ The unit deals damage equal to its attack power to the selected target, reducing
 */
 
 function getAttackTarget(map, unit) {
-  var north = unit.enemies.get(map[unit.y-1][unit.x]);
-  var west = unit.enemies.get(map[unit.y][unit.x-1]);
-  var east = unit.enemies.get(map[unit.y][unit.x+1]);
-  var south = unit.enemies.get(map[unit.y+1][unit.x]);
-  return [north, west, east, south].reduce(function(acc, cur) {
+  var adjacentEnemies = getAdjacents(unit).map(pos => unit.enemies.get(map[pos.y][pos.x]));
+  return adjacentEnemies.reduce(function(acc, cur) {
     if (acc == undefined) {
       return cur;
     }
@@ -160,16 +161,136 @@ function attack(map, unit, target) {
   }
 }
 
-function playTurn(map, unit) {
-  var adjacentTarget = getAttackTarget(map, unit);
-  if (adjacentTarget != undefined) {
-    attack(map, unit, adjacentTarget);
-    return;
+// returns a copy of map with attack positions indicated by ?
+function makeRangeMap(map, unit) {
+  var result = [];
+  for (let row of map) {
+    result.push(Array.from(row));
   }
-  // TODO: select moveTarget && move
+  for (let enemy of unit.enemies.values()) {
+    markAdjacentEmpties(result, enemy, "?");
+  }
+  return result;
 }
 
+function getAdjacents(position) {
+  return [
+    {x: position.x, y: position.y-1},
+    {x: position.x-1, y: position.y},
+    {x: position.x+1, y: position.y},
+    {x: position.x, y: position.y+1},
+  ];
+}
+
+// update map with marking in each empty space adjacent to position
+function markAdjacentEmpties(map, position, marking) {
+  for (let adjacent of getAdjacents(position)) {
+    if (map[adjacent.y][adjacent.x] == ".") {
+      map[adjacent.y][adjacent.x] = marking;
+    }
+  }
+}
+
+function minReadingPosition(acc, cur) {
+  if (acc == undefined) {
+    return cur;
+  }
+  if (cur == undefined) {
+    return acc;
+  }
+  if (cur.y < acc.y) {
+    return cur;
+  } 
+  if (acc.y < cur.y) {
+    return acc;
+  }
+  return (cur.x < acc.x) ? cur : acc;
+}
+
+
+// returns [x, y] of nearest attack position
+function getDestination(rangeMap, unit) {
+  var stepCount = 0;
+  var steps = [unit];
+  var destinations = [];
+  while (destinations.length < 1 && steps.length > 0 && ++stepCount < 100) {
+    var nextSteps = steps.flatMap(getAdjacents);
+    steps = [];
+    for (let step of nextSteps) {
+      if (rangeMap[step.y][step.x] == ".") {
+        steps.push(step);
+        rangeMap[step.y][step.x] = stepCount;
+      } else if (rangeMap[step.y][step.x] == "?") {
+        destinations.push(step);
+        rangeMap[step.y][step.x] = stepCount;
+      }
+    }
+  }
+  return destinations.reduce(minReadingPosition, undefined);
+}
+
+function getFirstStep(rangeMap, destination) {
+  // walk rangemap backwards from destination
+  var stepCount = rangeMap[destination.y][destination.x];
+  var steps = [destination];
+  while (stepCount > 1 && steps.length > 0) {
+    stepCount--;
+    var nextSteps = steps.flatMap(getAdjacents)
+      .filter(pos => {
+          if (typeof rangeMap[pos.y][pos.x] != "number") {
+            return false;
+          }
+          return rangeMap[pos.y][pos.x] == stepCount;
+        });
+    steps = nextSteps;
+  }
+  if (stepCount != 1) { 
+    return undefined;
+  }
+  return steps.reduce(minReadingPosition, undefined);
+}
+
+// moves unit to destination
+function step(map, unit, destination) {
+  map[unit.y][unit.x] = ".";
+  unit.x = destination.x;
+  unit.y = destination.y;
+  map[unit.y][unit.x] = unit.symbol;
+}
+
+// return false if combat ended
+function playTurn(map, unit) {
+  // dead units do not move
+  if (unit.hp <= 0) {
+    return true;
+  }
+  // combat ends when there are no more enemies
+  if (unit.enemies.size == 0) {
+    return false;
+  }
+  // try to attack adjacent units first
+  var adjacentTarget = getAttackTarget(map, unit);
+  if (adjacentTarget == undefined) {
+    // maybe select destination and maybe move
+    var rangeMap = makeRangeMap(map, unit);
+    var destination = getDestination(rangeMap, unit);
+    if (destination != undefined) {
+      var firstStep = getFirstStep(rangeMap, destination);
+      if (firstStep != undefined) {
+        step(map, unit, firstStep);
+        adjacentTarget = getAttackTarget(map, unit);
+      }
+    }
+  }
+  if (adjacentTarget != undefined) {
+    attack(map, unit, adjacentTarget);
+  }
+  return true;
+}
+
+// return false if combat ended during this round
 function playRound(map, goblins, elves) {
+  var units = [];
   for (let y = 0; y < map.length; y++) {
     for (let x = 0; x < map[y].length; x++) {
       var symbol = map[y][x];
@@ -178,11 +299,15 @@ function playRound(map, goblins, elves) {
         if (unit == undefined) {
           unit = elves.get(symbol);
         }
-        if (unit && unit.enemies.size == 0) {
-          return false;
+        if (unit != undefined) {
+          units.push(unit);
         }
-        playTurn(map, unit);
       }
+    }
+  }
+  for (let unit of units) {
+    if (!playTurn(map, unit)) {
+      return false;
     }
   }
   return true;
@@ -215,7 +340,9 @@ function combat(lines) {
       console.log("round " + round);
     }
   }
-  console.log("combat ended after round " + round + "\tgoblins: " + hpSum(goblins) + "\telves: " + hpSum(elves));
+  console.log("combat ended after round " + round + 
+              "\tgoblins: " + Array.from(goblins.values()).map(x=>x.hp).join() + 
+              "\telves: " + Array.from(elves.values()).map(x=>x.hp).join());
   return round * (hpSum(goblins) + hpSum(elves));
 }  
 /*
@@ -229,7 +356,17 @@ Initially:
 #..G#E#   G(200), E(200)
 #.....#   
 #######   
-
+*/
+var sampleCombat1 = [
+  "#######",
+  "#.G...#",
+  "#...EG#",
+  "#.#.#G#",
+  "#..G#E#",
+  "#.....#",
+  "#######",
+];
+/*
 After 1 round:
 #######   
 #..G..#   G(200)
@@ -315,7 +452,9 @@ After 47 rounds:
 #....G#   G(200)
 #######   
 Before the 48th round can finish, the top-left Goblin finds that there are no targets remaining, and so combat ends. So, the number of full rounds that were completed is 47, and the sum of the hit points of all remaining units is 200+131+59+200 = 590. From these, the outcome of the battle is 47 * 590 = 27730.
-
+*/
+console.assert(combat(sampleCombat1) == 27730);
+/*
 Here are a few example summarized combats:
 
 #######       #######
@@ -329,6 +468,17 @@ Here are a few example summarized combats:
 Combat ends after 37 full rounds
 Elves win with 982 total hit points left
 Outcome: 37 * 982 = 36334
+*/
+console.assert(combat([
+  "#######",
+  "#G..#E#",
+  "#E#E.E#",
+  "#G.##.#",
+  "#...#E#",
+  "#...E.#",
+  "#######",
+  ]) == 36334);
+/*
 #######       #######   
 #E..EG#       #.E.E.#   E(164), E(197)
 #.#G.E#       #.#E..#   E(200)
@@ -340,6 +490,17 @@ Outcome: 37 * 982 = 36334
 Combat ends after 46 full rounds
 Elves win with 859 total hit points left
 Outcome: 46 * 859 = 39514
+*/
+console.assert(combat([
+  "#######",
+  "#E..EG#",
+  "#.#G.E#",
+  "#E.##E#",
+  "#G..#.#",
+  "#..E#.#",
+  "#######",
+  ]) == 39514);
+/*
 #######       #######   
 #E.G#.#       #G.G#.#   G(200), G(98)
 #.#G..#       #.#G..#   G(200)
@@ -351,6 +512,17 @@ Outcome: 46 * 859 = 39514
 Combat ends after 35 full rounds
 Goblins win with 793 total hit points left
 Outcome: 35 * 793 = 27755
+*/
+console.assert(combat([
+  "#######",
+  "#E.G#.#",
+  "#.#G..#",
+  "#G.#.G#",
+  "#G..#.#",
+  "#...E.#",
+  "#######",
+  ]) == 27755);
+/*
 #######       #######   
 #.E...#       #.....#   
 #.#..G#       #.#G..#   G(200)
@@ -362,6 +534,17 @@ Outcome: 35 * 793 = 27755
 Combat ends after 54 full rounds
 Goblins win with 536 total hit points left
 Outcome: 54 * 536 = 28944
+*/
+console.assert(combat([
+  "#######",
+  "#.E...#",
+  "#.#..G#",
+  "#.###.#",
+  "#E#G#G#",
+  "#...#G#",
+  "#######",
+  ]) == 28944);
+/*
 #########       #########   
 #G......#       #.G.....#   G(137)
 #.E.#...#       #G.G#...#   G(200), G(200)
@@ -375,6 +558,19 @@ Outcome: 54 * 536 = 28944
 Combat ends after 20 full rounds
 Goblins win with 937 total hit points left
 Outcome: 20 * 937 = 18740
+*/
+console.assert(combat([
+  "#########",
+  "#G......#",
+  "#.E.#...#",
+  "#..##..G#",
+  "#...##..#",
+  "#...#...#",
+  "#.G...G.#",
+  "#.....G.#",
+  "#########",
+  ]) == 18740);
+/*
 What is the outcome of the combat described in your puzzle input?
 
 */
@@ -413,3 +609,4 @@ var input = [
 "#...#..#.......#################",
 "################################",
 ];
+console.log(combat(input));
