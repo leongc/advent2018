@@ -4349,3 +4349,70 @@ var input = [
 "11 3 1 0",
 ];
 console.log(countThreeOpsSamples(input));
+
+/*
+--- Part Two ---
+Using the samples you collected, work out the number of each opcode and execute the test program (the second section of your puzzle input).
+
+What value is contained in register 0 after executing the test program?
+*/
+function readSamplesAndExecuteProgram(lines) {
+  var possibleOps = new Set(ops);
+  var possibleOpcodes = [];
+  var opcodeFunctions = [];
+  function setOpcode(opcode, op) {
+    console.log(opcode + "\t= " + op.name);
+    opcodeFunctions[opcode] = op;
+    possibleOps.delete(op);
+    for (let i = 0; i < possibleOpcodes.length; i++) {
+      if (possibleOpcodes[i] != undefined && 
+          possibleOpcodes[i].delete(op) && 
+          possibleOpcodes[i].size == 1) {
+        setOpcode(i, possibleOpcodes[i].values().next().value);
+      }
+    }
+  }
+  var before, opcode, a, b, c, after, registers;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith("Before: ")) {
+      before = JSON.parse(lines[i].substring(8));
+    } else if (lines[i].startsWith("After: ")) {
+      if (opcodeFunctions[opcode] == undefined) {
+        after = JSON.parse(lines[i].substring(7));
+        if (possibleOpcodes[opcode] == undefined) {
+          possibleOpcodes[opcode] = new Set();
+          for (let op of possibleOps) {
+            var actual = op.call(undefined, a, b, c, Array.from(before));
+            if (actual.toString() == after.toString()) {
+              possibleOpcodes[opcode].add(op);
+            }
+          }
+          // console.log(opcode + "\t could be " + Array.from(possibleOpcodes[opcode]).map(x=>x.name).join());
+          if (possibleOpcodes[opcode].size == 1) {
+            setOpcode(opcode, possibleOpcodes[opcode].values().next().value);
+          }
+        } else {
+          for (let op of possibleOpcodes[opcode]) {
+            var actual = op.call(undefined, a, b, c, Array.from(before));
+            if (actual.toString() != after.toString()) {
+              // console.log(opcode + "\t cannot be " + op.name);
+              if (possibleOpcodes[opcode].delete(op) && possibleOpcodes[opcode].size == 1) {
+                setOpcode(opcode, possibleOpcodes[opcode].values().next().value);
+              }
+            }
+          }
+        }
+      }
+    } else if (lines[i] == "") {
+      registers = [0, 0, 0, 0];
+    } else {
+      [opcode, a, b, c] = lines[i].split(" ").map(x => parseInt(x));
+      var op = opcodeFunctions[opcode];
+      if (op != undefined) {
+        op.call(undefined, a, b, c, registers);
+      }
+    }
+  }
+  return registers[0];      
+}
+console.log(readSamplesAndExecuteProgram(input));
