@@ -32,6 +32,11 @@ function scanArea(lines) {
   return [map, goblins, elves];
 }
 
+function hpSum(winners) {
+  return Array.from(winners.values())
+    .reduce((acc, cur) => acc + cur.hp, 0);
+}
+
 /*
 Combat proceeds in rounds; in each round, each unit that is still alive takes a turn, resolving all of its actions before the next unit's turn begins. On each unit's turn, it tries to move into range of an enemy (if it isn't already) and then attack (if it is in range).
 
