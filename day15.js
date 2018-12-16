@@ -32,8 +32,8 @@ function scanArea(lines) {
   return [map, goblins, elves];
 }
 
-function hpSum(winners) {
-  return Array.from(winners.values())
+function hpSum(team) {
+  return Array.from(team.values())
     .reduce((acc, cur) => acc + cur.hp, 0);
 }
 
@@ -131,7 +131,65 @@ After moving (or if the unit began its turn in range of a target), the unit atta
 To attack, the unit first determines all of the targets that are in range of it by being immediately adjacent to it. If there are no such targets, the unit ends its turn. Otherwise, the adjacent target with the fewest hit points is selected; in a tie, the adjacent target with the fewest hit points which is first in reading order is selected.
 
 The unit deals damage equal to its attack power to the selected target, reducing its hit points by that amount. If this reduces its hit points to 0 or fewer, the selected target dies: its square becomes . and it takes no further turns.
+*/
 
+function getAttackTarget(map, unit) {
+  var north = unit.enemies.get(map[unit.y-1][unit.x]);
+  var west = unit.enemies.get(map[unit.y][unit.x-1]);
+  var east = unit.enemies.get(map[unit.y][unit.x+1]);
+  var south = unit.enemies.get(map[unit.y+1][unit.x]);
+  return [north, west, east, south].reduce(function(acc, cur) {
+    if (acc == undefined) {
+      return cur;
+    }
+    if (cur == undefined) {
+      return acc;
+    }
+    return (cur.hp < acc.hp) ? cur : acc;
+  });
+}
+
+function attack(map, unit, target) {
+  if (target == undefined) {
+    return;
+  }
+  target.hp -= unit.attack;
+  if (target.hp <= 0) {
+    map[target.y][target.x] = ".";
+    unit.enemies.delete(target.symbol);
+  }
+}
+
+function playTurn(map, unit) {
+  var adjacentTarget = getAttackTarget(map, unit);
+  if (adjacentTarget != undefined) {
+    attack(map, unit, adjacentTarget);
+    return;
+  }
+  // TODO: select moveTarget && move
+}
+
+function playRound(map, goblins, elves) {
+  for (let y = 0; y < map.length; y++) {
+    for (let x = 0; x < map[y].length; x++) {
+      var symbol = map[y][x];
+      if (symbol != "#" && symbol != ".") {
+        var unit = goblins.get(symbol);
+        if (unit == undefined) {
+          unit = elves.get(symbol);
+        }
+        if (unit && unit.enemies.size == 0) {
+          return false;
+        }
+        playTurn(map, unit);
+      }
+    }
+  }
+  return true;
+}
+
+
+/*
 Each unit, either Goblin or Elf, has 3 attack power and starts with 200 hit points.
 
 For example, suppose the only Elf is about to attack:
@@ -147,7 +205,20 @@ The "HP" column shows the hit points of the Goblin to the left in the correspond
 After attacking, the unit's turn ends. Regardless of how the unit's turn ends, the next unit in the round takes its turn. If all units have taken turns in this round, the round ends, and a new round begins.
 
 The Elves look quite outnumbered. You need to determine the outcome of the battle: the number of full rounds that were completed (not counting the round in which combat ends) multiplied by the sum of the hit points of all remaining units at the moment combat ends. (Combat only ends when a unit finds no targets during its turn.)
-
+*/
+function combat(lines) {
+  var [map, goblins, elves] = scanArea(lines);
+  var round = 0;
+  while (playRound(map, goblins, elves)) {
+    round++;
+    if (round % 1000 == 0) {
+      console.log("round " + round);
+    }
+  }
+  console.log("combat ended after round " + round + "\tgoblins: " + hpSum(goblins) + "\telves: " + hpSum(elves));
+  return round * (hpSum(goblins) + hpSum(elves));
+}  
+/*
 Below is an entire sample combat. Next to each map, each row's units' hit points are listed from left to right.
 
 Initially:
