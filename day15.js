@@ -6,7 +6,7 @@ Having perfected their hot chocolate, the Elves have a new problem: the Goblins 
 You scan the area, generating a map of the walls (#), open cavern (.), and starting position of every Goblin (G) and Elf (E) (your puzzle input).
 */
 
-function scanArea(lines) {
+function scanArea(lines, elfAttack = 3) {
   var map = [];
   var goblins = new Map(); // lowercase keys
   var goblinBaseChar = "a".charCodeAt(0);
@@ -23,7 +23,7 @@ function scanArea(lines) {
         map[y][x] = symbol;
       } else if (map[y][x] == "E") {
         var symbol = String.fromCharCode(elfBaseChar + elves.size);
-        var newElf = { x: x, y: y, hp: 200, attack: 3, symbol: symbol, enemies: goblins };
+        var newElf = { x: x, y: y, hp: 200, attack: elfAttack, symbol: symbol, enemies: goblins };
         elves.set(symbol, newElf);
         map[y][x] = symbol;
       }
@@ -491,7 +491,7 @@ Combat ends after 46 full rounds
 Elves win with 859 total hit points left
 Outcome: 46 * 859 = 39514
 */
-console.assert(combat([
+var sampleCombat2 = [
   "#######",
   "#E..EG#",
   "#.#G.E#",
@@ -499,7 +499,8 @@ console.assert(combat([
   "#G..#.#",
   "#..E#.#",
   "#######",
-  ]) == 39514);
+  ];
+console.assert(combat(sampleCombat2) == 39514);
 /*
 #######       #######   
 #E.G#.#       #G.G#.#   G(200), G(98)
@@ -513,7 +514,7 @@ Combat ends after 35 full rounds
 Goblins win with 793 total hit points left
 Outcome: 35 * 793 = 27755
 */
-console.assert(combat([
+var sampleCombat3 = [
   "#######",
   "#E.G#.#",
   "#.#G..#",
@@ -521,7 +522,8 @@ console.assert(combat([
   "#G..#.#",
   "#...E.#",
   "#######",
-  ]) == 27755);
+  ];
+console.assert(combat(sampleCombat3) == 27755);
 /*
 #######       #######   
 #.E...#       #.....#   
@@ -535,7 +537,7 @@ Combat ends after 54 full rounds
 Goblins win with 536 total hit points left
 Outcome: 54 * 536 = 28944
 */
-console.assert(combat([
+var sampleCombat4 = [
   "#######",
   "#.E...#",
   "#.#..G#",
@@ -543,7 +545,8 @@ console.assert(combat([
   "#E#G#G#",
   "#...#G#",
   "#######",
-  ]) == 28944);
+  ];
+console.assert(combat(sampleCombat4) == 28944);
 /*
 #########       #########   
 #G......#       #.G.....#   G(137)
@@ -559,7 +562,7 @@ Combat ends after 20 full rounds
 Goblins win with 937 total hit points left
 Outcome: 20 * 937 = 18740
 */
-console.assert(combat([
+var sampleCombat5 = [
   "#########",
   "#G......#",
   "#.E.#...#",
@@ -569,7 +572,8 @@ console.assert(combat([
   "#.G...G.#",
   "#.....G.#",
   "#########",
-  ]) == 18740);
+  ];
+console.assert(combat(sampleCombat5) == 18740);
 /*
 What is the outcome of the combat described in your puzzle input?
 
@@ -610,3 +614,121 @@ var input = [
 "################################",
 ];
 console.log(combat(input));
+
+/*
+--- Part Two ---
+According to your calculations, the Elves are going to lose badly. Surely, you won't mess up the timeline too much if you give them just a little advanced technology, right?
+
+You need to make sure the Elves not only win, but also suffer no losses: even the death of a single Elf is unacceptable.
+
+However, you can't go too far: larger changes will be more likely to permanently alter spacetime.
+
+So, you need to find the outcome of the battle in which the Elves have the lowest integer attack power (at least 4) that allows them to win without a single death. The Goblins always have an attack power of 3.
+
+In the first summarized example above, the lowest attack power the Elves need to win without losses is 15:
+
+#######       #######
+#.G...#       #..E..#   E(158)
+#...EG#       #...E.#   E(14)
+#.#.#G#  -->  #.#.#.#
+#..G#E#       #...#.#
+#.....#       #.....#
+#######       #######
+
+Combat ends after 29 full rounds
+Elves win with 172 total hit points left
+Outcome: 29 * 172 = 4988
+*/
+function advancedCombat(lines) {
+  var elfAttack = 3;
+  while (++elfAttack < 100) {
+    var [map, goblins, elves] = scanArea(lines, elfAttack);
+    var elfCount = elves.size;
+    var round = 0;
+    while (playRound(map, goblins, elves) && elves.size == elfCount) {
+      round++;
+      if (round % 1000 == 0) {
+        console.log("round " + round);
+      }
+    }
+    if (elves.size < elfCount) {
+      continue; // try again with more elf power
+    }
+    console.log("combat ended after round " + round + 
+              "\telves: " + Array.from(elves.values()).map(x=>x.hp).join());
+    return round * hpSum(elves);
+  }
+  return -1;
+}  
+console.assert(advancedCombat(sampleCombat1) == 4988);
+/*
+In the second example above, the Elves need only 4 attack power:
+
+#######       #######
+#E..EG#       #.E.E.#   E(200), E(23)
+#.#G.E#       #.#E..#   E(200)
+#E.##E#  -->  #E.##E#   E(125), E(200)
+#G..#.#       #.E.#.#   E(200)
+#..E#.#       #...#.#
+#######       #######
+
+Combat ends after 33 full rounds
+Elves win with 948 total hit points left
+Outcome: 33 * 948 = 31284
+*/
+console.assert(advancedCombat(sampleCombat2) == 31284);
+/*
+
+In the third example above, the Elves need 15 attack power:
+
+#######       #######
+#E.G#.#       #.E.#.#   E(8)
+#.#G..#       #.#E..#   E(86)
+#G.#.G#  -->  #..#..#
+#G..#.#       #...#.#
+#...E.#       #.....#
+#######       #######
+
+Combat ends after 37 full rounds
+Elves win with 94 total hit points left
+Outcome: 37 * 94 = 3478
+*/
+console.assert(advancedCombat(sampleCombat3) == 3478);
+/*
+In the fourth example above, the Elves need 12 attack power:
+
+#######       #######
+#.E...#       #...E.#   E(14)
+#.#..G#       #.#..E#   E(152)
+#.###.#  -->  #.###.#
+#E#G#G#       #.#.#.#
+#...#G#       #...#.#
+#######       #######
+
+Combat ends after 39 full rounds
+Elves win with 166 total hit points left
+Outcome: 39 * 166 = 6474
+*/
+console.assert(advancedCombat(sampleCombat4) == 6474);
+/*
+In the last example above, the lone Elf needs 34 attack power:
+
+#########       #########   
+#G......#       #.......#   
+#.E.#...#       #.E.#...#   E(38)
+#..##..G#       #..##...#   
+#...##..#  -->  #...##..#   
+#...#...#       #...#...#   
+#.G...G.#       #.......#   
+#.....G.#       #.......#   
+#########       #########   
+
+Combat ends after 30 full rounds
+Elves win with 38 total hit points left
+Outcome: 30 * 38 = 1140
+*/
+console.assert(advancedCombat(sampleCombat5) == 1140);
+/*
+After increasing the Elves' attack power until it is just barely enough for them to win without any Elves dying, what is the outcome of the combat described in your puzzle input?
+*/
+console.log(advancedCombat(input));
