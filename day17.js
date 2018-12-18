@@ -1788,4 +1788,6 @@ var input = [
 "x=550, y=86..92",
 "y=1553, x=452..471",
 ];
+var grid = parseScan(input.slice(0,100));
 //console.log(countWater(fill(parseScan(input))));
+dump(fill(grid));
