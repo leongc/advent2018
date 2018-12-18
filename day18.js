@@ -272,3 +272,26 @@ var input = [
 ".......#|........|..|...||...###.|..|#|.|.....||..",
 ];
 console.log(resourceValue(input, 10));
+
+/*
+--- Part Two ---
+This important natural resource will need to last for at least thousands of years. Are the Elves collecting this lumber sustainably?
+
+What will the total resource value of the lumber collection area be after 1000000000 minutes?
+*/
+
+var g = input;
+var t = 0;
+function advance(minutes) {
+  for (let m = 0; m < minutes; m++) {
+    g = next(g); t++;
+  }
+  var trees = g.join().match(/\|/g).length
+  var lumberYards = g.join().match(/#/g).length
+  // console.log(g.join('\n'));
+  console.log("t=" + t + "\t|=" + trees + "\t#=" + lumberYards);
+  return trees * lumberYards;
+}
+
+// by inspection, pattern repeats every 28 around 448, and 1000000000 % 28 = 20
+console.log(advance(468));
