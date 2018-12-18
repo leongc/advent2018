@@ -94,7 +94,7 @@ var expectedGrid1 = [
 "....#.....#...",
 "....#######...",
 ];
-console.log(parseScan(testInput).map(x=>x.join('')).join('\n') == expectedGrid1.join('\n'));
+console.assert(parseScan(testInput).map(x=>x.join('')).join('\n') == expectedGrid1.join('\n'));
 /*
 The spring of water will produce water forever. Water can move through sand, but is blocked by clay. Water always moves down when possible, and spreads to the left and right otherwise, filling space that has clay on both sides and falling out otherwise.
 
@@ -206,6 +206,79 @@ So, in the example above, counting both water at rest (~) and other sand tiles t
 How many tiles can the water reach within the range of y values in your scan?
 
 */
+function dump(grid) {
+  console.log(grid.map(x=>x.join('')).join('\n'));
+}
+/** @returns [minx, maxx, leftClosed, rightClosed] */
+function spread(grid, x, y) {
+  var minx = x;
+  var leftClosed = true;
+  while (grid[y][minx - 1] != "#") {
+    minx--;
+    grid[y][minx] = "|";
+    if (grid[y+1][minx] == ".") {
+      leftClosed = false;
+      break;
+    }
+  }
+  var maxx = x;
+  var rightClosed = true;
+  while (grid[y][maxx + 1] != "#") {
+    maxx++;
+    grid[y][maxx] = "|";
+    if (grid[y+1][maxx] == ".") {
+      rightClosed = false;
+      break;
+    }
+  }
+  return [minx, maxx, leftClosed, rightClosed];
+}
+
+// replaces all adjacent | with ~
+function settle(grid, minx, maxx, y) {
+  for (let x = minx; x <= maxx; x++) {
+    grid[y][x] = "~";
+  }
+};
+
+function fill(grid) {
+  var sources = [[grid[0].indexOf('+'), 0]];
+  function pour(grid, source) {
+    var x = source[0];
+    var y = source[1] + 1;
+    while (y < grid.length) {
+      grid[y][x] = "|";
+      if ((y == grid.length - 1) || (grid[y+1][x] == "#")) {
+        break;
+      }
+      y++;
+    }
+    if (y < grid.length - 1) {
+      var [minx, maxx, leftClosed, rightClosed] = spread(grid, x, y);
+      while (leftClosed && rightClosed) {
+        settle(grid, minx, maxx, y);
+        y--;
+        [minx, maxx, leftClosed, rightClosed] = spread(grid, x, y);
+      }
+      if (!leftClosed) {
+        sources.push([minx, y]);
+      }
+      if (!rightClosed) {
+        sources.push([maxx, y]);
+      }
+    }
+  }
+  while (sources.length > 0) {
+    pour(grid, sources.pop());
+  }  
+  return grid;
+}
+
+function countWater(grid) {
+  return grid.map(x=>x.join('')).join('\n').match(/[\|~]/g).length;
+}
+   
+console.assert(countWater(fill(parseScan(testInput))) == 57);
 
 var input = [
 "y=1230, x=524..528",
@@ -1715,3 +1788,4 @@ var input = [
 "x=550, y=86..92",
 "y=1553, x=452..471",
 ];
+//console.log(countWater(fill(parseScan(input))));
