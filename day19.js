@@ -157,7 +157,7 @@ ip=2 [2, 5, 6, 0, 0, 0] addi 0 1 0 [3, 5, 6, 0, 0, 0]
 ip=4 [4, 5, 6, 0, 0, 0] setr 1 0 0 [5, 5, 6, 0, 0, 0]
 ip=6 [6, 5, 6, 0, 0, 0] seti 9 0 5 [6, 5, 6, 0, 0, 9]
 */
-function executeProgram(lines) {
+function executeProgram(lines, r0 = 0) {
   var ipReg = parseInt(lines[0].match(/#ip (\d+)/)[1]);
   var program = [];
   for (let i = 1; i < lines.length; i++) {
@@ -167,8 +167,8 @@ function executeProgram(lines) {
     var instruction = [op, args];
     program.push(instruction);
   }
-  var registers = [];
-  for (let r = 0; r < 6; r++) {
+  var registers = [r0];
+  for (let r = 1; r < 6; r++) {
     registers[r] = 0;
   }
   var pc = registers[ipReg];
@@ -244,3 +244,11 @@ var input = [
 "seti 0 4 2",
 ];
 console.log(executeProgram(input));
+
+/*
+--- Part Two ---
+A new background process immediately spins up in its place. It appears identical, but on closer inspection, you notice that this time, register 0 started with the value 1.
+
+What value is left in register 0 when this new background process halts?
+*/
+console.log(executeProgram(input, 1));
