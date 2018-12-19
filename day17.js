@@ -216,17 +216,18 @@ function spread(grid, x, y) {
   while (grid[y][minx - 1] != "#") {
     minx--;
     grid[y][minx] = "|";
-    if (grid[y+1][minx] == ".") {
+    if (grid[y+1][minx] == "." || grid[y+1][minx] == "|") {
       leftClosed = false;
       break;
     }
   }
+  grid[y][x] = "|"; // necessary when spreading above original pour
   var maxx = x;
   var rightClosed = true;
   while (grid[y][maxx + 1] != "#") {
     maxx++;
     grid[y][maxx] = "|";
-    if (grid[y+1][maxx] == ".") {
+    if (grid[y+1][maxx] == "." || grid[y+1][maxx] == "|") {
       rightClosed = false;
       break;
     }
@@ -245,10 +246,14 @@ function fill(grid) {
   var sources = [[grid[0].indexOf('+'), 0]];
   function pour(grid, source) {
     var x = source[0];
-    var y = source[1] + 1;
+    var y = source[1];
+    if (grid[y][x] == "~") { // already filled
+      return;
+    }
+    y++;
     while (y < grid.length) {
       grid[y][x] = "|";
-      if ((y == grid.length - 1) || (grid[y+1][x] == "#")) {
+      if ((y == grid.length - 1) || (grid[y+1][x] == "#") || (grid[y+1][x] == "~")) {
         break;
       }
       y++;
@@ -1788,6 +1793,5 @@ var input = [
 "x=550, y=86..92",
 "y=1553, x=452..471",
 ];
-var grid = parseScan(input.slice(0,100));
-//console.log(countWater(fill(parseScan(input))));
-dump(fill(grid));
+var grid = fill(parseScan(input));
+console.log(countWater(grid));
