@@ -42,20 +42,22 @@ Rendering clay as #, sand as ., and the water spring as +, and with x increasing
 */
 function parseScan(lines) {
   var clay = new Set();
-  var minx = Infinity, maxx = -Infinity, maxy = 0;
+  var minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = 0;
   for (let line of lines) {
     if (line.startsWith("x=")) {
-      var [_, x, starty, endy] = line.match(/^x=(\d+), y=(\d+)\.\.(\d+)$/);
+      var [_, x, starty, endy] = line.match(/^x=(\d+), y=(\d+)\.\.(\d+)$/).map(x=>parseInt(x));
       minx = Math.min(minx, x);
       maxx = Math.max(maxx, x);
+      miny = Math.min(miny, starty);
       maxy = Math.max(maxy, endy);
       for (let y = starty; y <= endy; y++) {
         clay.add([x, y]);
       }
     } else if (line.startsWith("y=")) {
-      var [_, y, startx, endx] = line.match(/^y=(\d+), x=(\d+)\.\.(\d+)$/);
+      var [_, y, startx, endx] = line.match(/^y=(\d+), x=(\d+)\.\.(\d+)$/).map(x=>parseInt(x));
       minx = Math.min(minx, startx);
       maxx = Math.max(maxx, endx);
+      miny = Math.min(miny, y);
       maxy = Math.max(maxy, y);
       for (let x = startx; x <= endx; x++) {
         clay.add([x, y]);
@@ -65,7 +67,7 @@ function parseScan(lines) {
   // leave room for underflow and overflow
   minx--; maxx++;
   var grid = [];
-  for (let y = 0; y <= maxy; y++) {
+  for (let y = miny - 1; y <= maxy; y++) {
     var row = [];
     for (let x = minx; x <= maxx; x++) {
       row.push(".");
@@ -73,7 +75,7 @@ function parseScan(lines) {
     grid.push(row);
   }
   for (let xy of clay.values()) {
-    grid[xy[1]][xy[0] - minx] = "#";
+    grid[xy[1] - miny + 1][xy[0] - minx] = "#";
   }
   grid[0][500 - minx] = "+";
   return grid;
@@ -280,7 +282,11 @@ function fill(grid) {
 }
 
 function countWater(grid) {
-  return grid.map(x=>x.join('')).join('\n').match(/[\|~]/g).length;
+  var s = grid.map(x=>x.join('')).join('\n');
+  var flowing = s.match(/\|/g).length;
+  var still = s.match(/~/g).length;
+  console.log("flowing: " + flowing + "\tstill: " + still);
+  return flowing + still;
 }
    
 console.assert(countWater(fill(parseScan(testInput))) == 57);
