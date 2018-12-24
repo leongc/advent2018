@@ -174,14 +174,14 @@ function executeProgram(lines, r0 = 0) {
   var pc = registers[ipReg];
   var steps = 0;
   var debugLine;
-  while (0 <= pc && pc < program.length && steps < 100000000) {
+  while (0 <= pc && pc < program.length && steps < 100000000001) {
     var [op, args] = program[pc];
     registers[ipReg] = pc;
-    if (steps % 1000000 == 0) {
+    if (steps % 10000000 == 0) {
       debugLine = "step=" + steps + "\tip=" + pc + " [" + registers.join(', ') + "] " + op.name + " " + args.join(" ");
     }
     op.apply(undefined, args.concat([registers]));
-    if (steps % 1000000 == 0) {
+    if (steps % 10000000 == 0) {
       debugLine += " [" + registers.join(', ') + "] ";
       console.log(debugLine);
     }
